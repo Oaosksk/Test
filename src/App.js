@@ -1,6 +1,8 @@
 import './App.css';
 import Module1 from './module1/Module1';
 import Module2 from './module2/Module2';
+import Module3 from './module3/Module3';
+import Module4 from './module4/Module4';
 
 function App() {
   return (
@@ -9,15 +11,14 @@ function App() {
         display: 'flex',
         flexDirection: 'column',
         gap: '20px',
+        padding: '20px',
         minHeight: '100vh',
         justifyContent: 'center'
       }}>
-        <div style={{ height: '50%' }}>
-          <Module1 />
-        </div>
-        <div style={{ height: '50%' }}>
-          <Module2 />
-        </div>
+        <Module1 />
+       
+        <Module3 />
+        <Module4 />
       </div>
     </div>
   );

@@ -7,4 +7,8 @@ describe('Module1', () => {
     const buttonElement = screen.getByText(/module 1/i);
     expect(buttonElement).toBeInTheDocument();
   });
+test('renders Module 1 button', () => {
+  render(<Module1 />);
+  const buttonElement = screen.getByText(/module 1/i);
+  expect(buttonElement).toBeInTheDocument();
 });
