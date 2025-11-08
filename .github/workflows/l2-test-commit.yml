@@ -4,6 +4,10 @@ on:
   push:
     branches: [L2]
 
+permissions:
+  contents: write
+  issues: write
+
 jobs:
   test-and-commit:
     runs-on: ubuntu-latest

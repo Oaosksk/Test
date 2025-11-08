@@ -6,6 +6,10 @@ on:
     types: [completed]
     branches: [L1, L2]
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   check-workflows:
     runs-on: ubuntu-latest
