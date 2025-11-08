@@ -1,0 +1,100 @@
+name: 🚀 Master Merge with Approval
+
+on:
+  workflow_run:
+    workflows: ["🧪 L1 Test and Auto Commit", "🧪 L2 Test and Auto Commit"]
+    types: [completed]
+    branches: [L1, L2]
+
+jobs:
+  check-workflows:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      should-merge: ${{ steps.check-both.outputs.should-merge }}
+    
+    steps:
+      - name: 🔍 Check if both L1 and L2 workflows succeeded
+        id: check-both
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: workflows } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              status: 'success',
+              per_page: 50
+            });
+            
+            const l1Success = workflows.workflow_runs.some(run => 
+              run.name === '🧪 L1 Test and Auto Commit' && 
+              run.head_branch === 'L1' &&
+              run.conclusion === 'success'
+            );
+            
+            const l2Success = workflows.workflow_runs.some(run => 
+              run.name === '🧪 L2 Test and Auto Commit' && 
+              run.head_branch === 'L2' &&
+              run.conclusion === 'success'
+            );
+            
+            const shouldMerge = l1Success && l2Success;
+            core.setOutput('should-merge', shouldMerge);
+            
+            if (shouldMerge) {
+              console.log('✅ Both L1 and L2 workflows succeeded - proceeding to merge');
+            } else {
+              console.log('⏳ Waiting for both L1 and L2 workflows to succeed');
+            }
+
+  merge-to-master:
+    needs: check-workflows
+    if: needs.check-workflows.outputs.should-merge == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: merge-approval
+      url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    
+    steps:
+      - name: 📥 Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 🔄 Fetch and merge L1 and L2
+        run: |
+          echo "🔄 Fetching latest changes..."
+          git fetch origin L1 L2
+          
+          echo "🔀 Merging L1 branch..."
+          git merge origin/L1 --no-ff -m "merge: integrate L1 changes"
+          
+          echo "🔀 Merging L2 branch..."
+          git merge origin/L2 --no-ff -m "merge: integrate L2 changes"
+
+      - name: 📦 Install dependencies
+        run: |
+          echo "🚀 Installing dependencies..."
+          npm ci
+
+      - name: 🧪 Run final integration tests
+        run: |
+          echo "🧪 Running final integration tests..."
+          npm run test -- --coverage --watchAll=false
+
+      - name: ✅ Commit and push to master
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --staged --quiet || git commit -m "chore(master): merged L1 and L2 after approval"
+          git push origin master
+          echo "🚀 Successfully merged to master!"
