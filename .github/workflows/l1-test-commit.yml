@@ -4,6 +4,10 @@ on:
   push:
     branches: [L1]
 
+permissions:
+  contents: write
+  issues: write
+
 jobs:
   test-and-commit:
     runs-on: ubuntu-latest
@@ -13,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: 🔧 Setup Node.js 18
         uses: actions/setup-node@v4
@@ -58,9 +63,12 @@ jobs:
       - name: ✅ Auto commit after successful tests
         if: steps.check-tests.outputs.tests_exist == 'true' && success()
         run: |
+          echo "✅ All tests passed - committing changes..."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin L1
+          git pull origin L1 --rebase || true
           git add .
-          git diff --staged --quiet || git commit -m "chore(L1): auto commit after successful tests"
-          git push
+          git commit -m "chore(L1): auto commit after successful tests" || echo "No changes to commit"
+          git push origin L1 || echo "⚠️ No push needed — branch already up to date."
           echo "🚀 Auto commit completed!"
